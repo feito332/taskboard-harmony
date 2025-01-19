@@ -1,7 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TaskCard } from "./TaskCard";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { AddTaskDialog } from "./AddTaskDialog";
+import { useToast } from "@/hooks/use-toast";
+
+interface Task {
+  id: number;
+  provider: string;
+  building: string;
+  description: string;
+  status: "pending" | "in-progress" | "completed";
+  dueDate: string;
+  notes?: string;
+}
 
 // Datos de ejemplo
 const initialTasks = [
@@ -36,7 +48,52 @@ const initialTasks = [
 
 export function TaskBoard() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [tasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Verificar tareas próximas a vencer
+    const checkDueDates = () => {
+      const today = new Date();
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(today.getDate() + 3);
+
+      tasks.forEach((task) => {
+        if (task.status !== "completed") {
+          const dueDate = new Date(task.dueDate);
+          if (dueDate <= threeDaysFromNow && dueDate >= today) {
+            toast({
+              title: "Tarea próxima a vencer",
+              description: `La tarea "${task.description}" vence el ${task.dueDate}`,
+              variant: "destructive",
+            });
+          }
+        }
+      });
+    };
+
+    checkDueDates();
+    // Verificar cada 24 horas
+    const interval = setInterval(checkDueDates, 24 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [tasks, toast]);
+
+  const handleStatusChange = (taskId: number, newStatus: "pending" | "in-progress" | "completed") => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+  };
+
+  const handleAddTask = (newTask: Omit<Task, "id" | "status">) => {
+    const task: Task = {
+      ...newTask,
+      id: Math.max(...tasks.map((t) => t.id)) + 1,
+      status: "pending",
+    };
+    setTasks((prevTasks) => [...prevTasks, task]);
+  };
 
   const filteredTasks = tasks.filter(
     (task) =>
@@ -47,7 +104,7 @@ export function TaskBoard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between space-x-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
           <Input
@@ -58,11 +115,16 @@ export function TaskBoard() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <AddTaskDialog onTaskAdded={handleAddTask} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTasks.map((task) => (
-          <TaskCard key={task.id} {...task} />
+          <TaskCard
+            key={task.id}
+            {...task}
+            onStatusChange={handleStatusChange}
+          />
         ))}
       </div>
     </div>
