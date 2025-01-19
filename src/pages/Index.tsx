@@ -1,4 +1,4 @@
-import { TaskBoard } from "@/components/TaskBoard";
+import { BuildingsDashboard } from "@/components/BuildingsDashboard";
 
 const Index = () => {
   return (
@@ -10,7 +10,7 @@ const Index = () => {
       </header>
       
       <main className="container mx-auto">
-        <TaskBoard />
+        <BuildingsDashboard />
       </main>
     </div>
   );

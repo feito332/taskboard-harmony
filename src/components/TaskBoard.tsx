@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { TaskCard } from "./TaskCard";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
 import {
   Select,
   SelectContent,
@@ -54,10 +56,13 @@ const initialTasks = [
 ];
 
 export function TaskBoard() {
+  const { buildingName } = useParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(
+    initialTasks.filter(task => task.building === decodeURIComponent(buildingName || ""))
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [buildingFilter, setBuildingFilter] = useState<string>("all");
   const { toast } = useToast();
 
   // Obtener lista única de edificios
@@ -110,17 +115,27 @@ export function TaskBoard() {
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.building.toLowerCase().includes(searchTerm.toLowerCase());
+      task.provider.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || task.status === statusFilter;
-    const matchesBuilding = buildingFilter === "all" || task.building === buildingFilter;
 
-    return matchesSearch && matchesStatus && matchesBuilding;
+    return matchesSearch && matchesStatus;
   });
 
   return (
     <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/")}
+          className="mr-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h2 className="text-2xl font-bold">{decodeURIComponent(buildingName || "")}</h2>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
@@ -143,20 +158,6 @@ export function TaskBoard() {
               <SelectItem value="pending">Pendiente</SelectItem>
               <SelectItem value="in-progress">En Curso</SelectItem>
               <SelectItem value="completed">Finalizado</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={buildingFilter} onValueChange={setBuildingFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por edificio" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los edificios</SelectItem>
-              {buildings.map((building) => (
-                <SelectItem key={building} value={building}>
-                  {building}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
