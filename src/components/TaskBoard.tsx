@@ -4,6 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Task {
   id: number;
@@ -49,7 +56,12 @@ const initialTasks = [
 export function TaskBoard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [buildingFilter, setBuildingFilter] = useState<string>("all");
   const { toast } = useToast();
+
+  // Obtener lista única de edificios
+  const buildings = Array.from(new Set(tasks.map((task) => task.building)));
 
   useEffect(() => {
     // Verificar tareas próximas a vencer
@@ -95,16 +107,21 @@ export function TaskBoard() {
     setTasks((prevTasks) => [...prevTasks, task]);
   };
 
-  const filteredTasks = tasks.filter(
-    (task) =>
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
       task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.building.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      task.building.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+    const matchesBuilding = buildingFilter === "all" || task.building === buildingFilter;
+
+    return matchesSearch && matchesStatus && matchesBuilding;
+  });
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between space-x-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
           <Input
@@ -115,6 +132,35 @@ export function TaskBoard() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="pending">Pendiente</SelectItem>
+              <SelectItem value="in-progress">En Curso</SelectItem>
+              <SelectItem value="completed">Finalizado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={buildingFilter} onValueChange={setBuildingFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por edificio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los edificios</SelectItem>
+              {buildings.map((building) => (
+                <SelectItem key={building} value={building}>
+                  {building}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <AddTaskDialog onTaskAdded={handleAddTask} />
       </div>
 
