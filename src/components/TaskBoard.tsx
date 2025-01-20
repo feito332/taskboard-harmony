@@ -1,179 +1,121 @@
-import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { TaskCard } from "./TaskCard";
-import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft } from "lucide-react";
 import { AddTaskDialog } from "./AddTaskDialog";
-import { useToast } from "@/hooks/use-toast";
-import { useParams, useNavigate } from "react-router-dom";
+import { Building2, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface Task {
-  id: number;
+  id: string;
   provider: string;
   building: string;
   description: string;
-  status: "pending" | "in-progress" | "completed";
   dueDate: string;
   notes?: string;
+  status: "pending" | "inProgress" | "completed";
 }
-
-// Datos de ejemplo
-const initialTasks = [
-  {
-    id: 1,
-    provider: "Electricista Juan",
-    building: "Edificio Central",
-    description: "Reparación de iluminación en lobby",
-    status: "pending" as const,
-    dueDate: "2024-04-15",
-    notes: "Se requiere cambio de transformador",
-  },
-  {
-    id: 2,
-    provider: "Plomería Express",
-    building: "Torre Norte",
-    description: "Mantenimiento sistema de agua",
-    status: "in-progress" as const,
-    dueDate: "2024-04-20",
-    notes: "Revisión trimestral programada",
-  },
-  {
-    id: 3,
-    provider: "Seguridad Total",
-    building: "Residencial Sur",
-    description: "Actualización cámaras de seguridad",
-    status: "completed" as const,
-    dueDate: "2024-04-10",
-    notes: "Instalación completada, pendiente capacitación",
-  },
-];
 
 export function TaskBoard() {
   const { buildingName } = useParams();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [tasks, setTasks] = useState<Task[]>(
-    initialTasks.filter(task => task.building === decodeURIComponent(buildingName || ""))
-  );
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const { toast } = useToast();
+  
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Obtener lista única de edificios
-  const buildings = Array.from(new Set(tasks.map((task) => task.building)));
+  const handleAddTask = (task: Task) => {
+    setTasks((prev) => [...prev, task]);
+  };
 
-  useEffect(() => {
-    // Verificar tareas próximas a vencer
-    const checkDueDates = () => {
-      const today = new Date();
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(today.getDate() + 3);
-
-      tasks.forEach((task) => {
-        if (task.status !== "completed") {
-          const dueDate = new Date(task.dueDate);
-          if (dueDate <= threeDaysFromNow && dueDate >= today) {
-            toast({
-              title: "Tarea próxima a vencer",
-              description: `La tarea "${task.description}" vence el ${task.dueDate}`,
-              variant: "destructive",
-            });
-          }
-        }
-      });
-    };
-
-    checkDueDates();
-    // Verificar cada 24 horas
-    const interval = setInterval(checkDueDates, 24 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [tasks, toast]);
-
-  const handleStatusChange = (taskId: number, newStatus: "pending" | "in-progress" | "completed") => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
+  const handleStatusChange = (taskId: string, newStatus: Task["status"]) => {
+    setTasks((prev) =>
+      prev.map((task) =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
   };
 
-  const handleAddTask = (newTask: Omit<Task, "id" | "status">) => {
-    const task: Task = {
-      ...newTask,
-      id: Math.max(...tasks.map((t) => t.id)) + 1,
-      status: "pending",
-    };
-    setTasks((prevTasks) => [...prevTasks, task]);
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.provider.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/")}
-          className="mr-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-2xl font-bold">{decodeURIComponent(buildingName || "")}</h2>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input
-            type="text"
-            placeholder="Buscar tareas..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link to="/">
+                <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <div className="flex items-center gap-3">
+                <Building2 className="h-6 w-6 text-primary" />
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+                  {decodeURIComponent(buildingName || '')}
+                </h1>
+              </div>
+            </div>
+            <AddTaskDialog onTaskAdded={handleAddTask} />
+          </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="pending">Pendiente</SelectItem>
-              <SelectItem value="in-progress">En Curso</SelectItem>
-              <SelectItem value="completed">Finalizado</SelectItem>
-            </SelectContent>
-          </Select>
+      </header>
+
+      <main className="container mx-auto py-8 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pendientes</h2>
+              <div className="space-y-4">
+                {tasks
+                  .filter((task) => task.status === "pending")
+                  .map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                      onDelete={handleDeleteTask}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">En Progreso</h2>
+              <div className="space-y-4">
+                {tasks
+                  .filter((task) => task.status === "inProgress")
+                  .map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                      onDelete={handleDeleteTask}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Completadas</h2>
+              <div className="space-y-4">
+                {tasks
+                  .filter((task) => task.status === "completed")
+                  .map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                      onDelete={handleDeleteTask}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
         </div>
-
-        <AddTaskDialog onTaskAdded={handleAddTask} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            {...task}
-            onStatusChange={handleStatusChange}
-          />
-        ))}
-      </div>
+      </main>
     </div>
   );
 }

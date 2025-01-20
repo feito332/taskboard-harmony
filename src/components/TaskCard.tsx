@@ -1,107 +1,122 @@
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Building2, User2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Trash2, CheckCircle, Circle, Clock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
-interface TaskCardProps {
-  id: number;
+interface Task {
+  id: string;
   provider: string;
   building: string;
   description: string;
-  status: "pending" | "in-progress" | "completed";
   dueDate: string;
   notes?: string;
-  onStatusChange?: (id: number, newStatus: "pending" | "in-progress" | "completed") => void;
+  status: "pending" | "inProgress" | "completed";
 }
 
-const statusConfig = {
-  pending: { color: "bg-destructive", text: "Pendiente" },
-  "in-progress": { color: "bg-warning", text: "En Curso" },
-  completed: { color: "bg-success", text: "Finalizado" },
-};
+interface TaskCardProps {
+  task: Task;
+  onStatusChange: (taskId: string, newStatus: Task["status"]) => void;
+  onDelete: (taskId: string) => void;
+}
 
-export function TaskCard({
-  id,
-  provider,
-  building,
-  description,
-  status,
-  dueDate,
-  notes,
-  onStatusChange,
-}: TaskCardProps) {
-  const { toast } = useToast();
-
-  const handleStatusChange = (newStatus: "pending" | "in-progress" | "completed") => {
-    if (onStatusChange) {
-      onStatusChange(id, newStatus);
-      toast({
-        title: "Estado actualizado",
-        description: `La tarea ha sido marcada como ${statusConfig[newStatus].text}`,
-      });
-    }
+export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
+  const statusColors = {
+    pending: "text-red-500",
+    inProgress: "text-yellow-500",
+    completed: "text-green-500",
   };
 
-  const isOverdue = new Date(dueDate) < new Date() && status !== "completed";
+  const StatusIcon = {
+    pending: Circle,
+    inProgress: Clock,
+    completed: CheckCircle,
+  }[task.status];
 
   return (
-    <Card className="p-4 hover:shadow-lg transition-shadow">
-      <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <h3 className="font-medium text-lg">{description}</h3>
+    <Card className="bg-white/90 backdrop-blur-sm border-gray-200 p-4 hover:shadow-md transition-all duration-200 group">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <StatusIcon className={`h-5 w-5 ${statusColors[task.status]}`} />
+          <h3 className="font-medium text-gray-900">{task.provider}</h3>
+        </div>
+        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Badge className={`${statusConfig[status].color}`}>
-                  {statusConfig[status].text}
-                </Badge>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <span className="sr-only">Cambiar estado</span>
+                <StatusIcon className={`h-4 w-4 ${statusColors[task.status]}`} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleStatusChange("pending")}>
-                Pendiente
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onStatusChange(task.id, "pending")}>
+                <Circle className="mr-2 h-4 w-4 text-red-500" />
+                <span>Pendiente</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange("in-progress")}>
-                En Curso
+              <DropdownMenuItem onClick={() => onStatusChange(task.id, "inProgress")}>
+                <Clock className="mr-2 h-4 w-4 text-yellow-500" />
+                <span>En Progreso</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange("completed")}>
-                Finalizado
+              <DropdownMenuItem onClick={() => onStatusChange(task.id, "completed")}>
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                <span>Completada</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50">
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción no se puede deshacer. Se eliminará permanentemente la tarea.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(task.id)}
+                  className="bg-red-500 text-white hover:bg-red-600"
+                >
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <User2 className="h-4 w-4" />
-            <span>{provider}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Building2 className="h-4 w-4" />
-            <span>{building}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <CalendarDays className="h-4 w-4" />
-            <span className={isOverdue ? "text-destructive font-medium" : ""}>
-              {dueDate}
-            </span>
-          </div>
-        </div>
-        
-        {notes && (
-          <div className="mt-2 text-sm text-gray-500 border-t pt-2">
-            {notes}
-          </div>
-        )}
+      </div>
+
+      <p className="text-gray-600 mb-3">{task.description}</p>
+
+      {task.notes && (
+        <p className="text-sm text-gray-500 mb-3">{task.notes}</p>
+      )}
+
+      <div className="flex items-center text-sm text-gray-500">
+        <Calendar className="h-4 w-4 mr-2" />
+        <time dateTime={task.dueDate}>
+          {new Date(task.dueDate).toLocaleDateString()}
+        </time>
       </div>
     </Card>
   );
