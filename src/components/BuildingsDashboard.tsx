@@ -1,9 +1,10 @@
-import { Building2, Plus, Search } from "lucide-react";
+import { Building2, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { AddBuildingDialog } from "./AddBuildingDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface BuildingStats {
   total: number;
@@ -52,9 +53,28 @@ export function BuildingsDashboard() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "inProgress" | "completed">("all");
+  const [buildingsList, setBuildingsList] = useState<Building[]>(buildings);
+  const { toast } = useToast();
 
-  // Filtrar edificios basado en el término de búsqueda y el estado
-  const filteredBuildings = buildings.filter((building) => {
+  const handleAddBuilding = (buildingName: string) => {
+    const newBuilding: Building = {
+      name: buildingName,
+      stats: {
+        total: 0,
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
+      },
+    };
+    
+    setBuildingsList((prev) => [...prev, newBuilding]);
+    toast({
+      title: "Edificio agregado",
+      description: `Se ha agregado "${buildingName}" exitosamente.`,
+    });
+  };
+
+  const filteredBuildings = buildingsList.filter((building) => {
     const matchesSearch = building.name.toLowerCase().includes(searchTerm.toLowerCase());
     if (filterStatus === "all") return matchesSearch;
     
@@ -77,10 +97,7 @@ export function BuildingsDashboard() {
               className="pl-8"
             />
           </div>
-          <Button onClick={() => console.log("Agregar edificio")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Agregar Edificio
-          </Button>
+          <AddBuildingDialog onBuildingAdded={handleAddBuilding} />
         </div>
       </div>
       
